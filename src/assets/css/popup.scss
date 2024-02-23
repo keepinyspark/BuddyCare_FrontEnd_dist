@@ -1,0 +1,116 @@
+.waiting-popup {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: calc(100% - #{$footerHeight});
+  background: rgba(0, 0, 0, 0.8);
+  z-index: 100;
+
+  > .waiting-popup-wrapper {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+
+  .title {
+    font-style: normal;
+    font-weight: 700;
+    font-size: 24px;
+    line-height: 29px;
+    color: $colorWhite;
+    text-align: center;
+  }
+  .desc {
+    margin-top: 5px;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 19px;
+    color: $colorWhite;
+    text-align: center;
+  }
+
+  .btn-setting {
+    width: 100%;
+    max-width: 200px;
+    margin-top: 40px;
+    padding: 10px 20px;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 19px;
+    letter-spacing: 0.01em;
+    color: $colorWhite;
+    background-color: $colorPrimary;
+  }
+
+  .btn-back {
+    width: 100%;
+    max-width: 200px;
+    margin-top: 15px;
+    padding: 10px 20px;
+    font-style: normal;
+    font-weight: 500;
+    font-size: 16px;
+    line-height: 19px;
+    letter-spacing: 0.01em;
+    color: $colorPrimary;
+  }
+}
+
+.watchface-popup-wrapper, .disturb-popup-wrapper {
+  .watchface-info-wrapper {
+    .watchface-name {
+      font-style: normal;
+      font-weight: 700;
+      font-size: 20px;
+      line-height: 24px;
+      color: $textContentBlack;
+    }
+  }
+
+  .btn-wrapper {
+    button {
+      width: 130px;
+      height: 50px;
+      padding: unset;
+      font-style: normal;
+      font-weight: 700;
+      font-size: 16px;
+      line-height: 19px;
+    }
+  }
+
+  .sync-wrapper {
+    p {
+      font-style: normal;
+      font-weight: 500;
+      font-size: 16px;
+      line-height: 19px;
+      letter-spacing: 0.01em;
+      color: $colorPrimary;
+    }
+
+    div {
+      position: relative;
+      width: 100%;
+      height: 10px;
+      background: #F4F5F7;
+      border-radius: 20px;
+
+      span {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 10px;
+        background: #466FFF;
+        border-radius: 20px;
+      }
+    }
+  }
+}
