@@ -1,5 +1,5 @@
 <script lang="ts">
-import { defineComponent, onBeforeMount, onMounted, onUnmounted, PropType, ref } from 'vue';
+import { defineComponent, onBeforeMount, onMounted, onUnmounted, ref } from 'vue';
 import KpInput from '@components/common/KpInput.vue';
 import KpButton from '@components/common/KpButton.vue';
 import KpImage from '@components/common/KpImage.vue';
@@ -7,17 +7,13 @@ import { useStore } from 'vuex';
 import { useRoute, useRouter } from 'vue-router';
 import { getApiClient } from '@utils/api-client';
 import { LoginUserInfoInterface, UserType } from '@src/types/types';
-import { doLogout, getImgUrl, loadLocalData, removeLocalData, saveLocalData } from '@utils/common-utils';
+import { doLogout, getImgUrl, loadLocalData, saveLocalData } from '@utils/common-utils';
 import { KEY_LIST } from '../../constants-keys';
 import LayoutHeader from '@components/layout/header/LayoutHeader.vue';
 import AppConfig from '../../constants';
 import validator from 'validator';
 import { SET_AUTH_TOKEN, SET_FOOTER_TYPE } from '@src/store/actions';
-import { createGroupManager, getGroupManager, removeGroupManager } from '@utils/group/group-instance';
-import { removeCookie } from 'typescript-cookie';
-import { GroupManagerEvent } from '@utils/group/group-base-manager';
-import router from '@src/router';
-import { releaseSocket } from '../../utils/group/chat-utils';
+import { getGroupManager, removeGroupManager } from '@utils/group/group-instance';
 import { getGroupList } from '../../utils/group/api/group-api';
 import { STATE_REG } from '../../components/Profile.vue';
 import KpSelectBox from '@components/common/KpSelectBox.vue';
@@ -127,15 +123,18 @@ export default defineComponent({
 					isEmailValidCheck.value = true;
 				}
 			}
-
-			if (userName.value.length > 0 && isEmailValidCheck.value && isPhoneValidCheck.value) {
-				if (isEnabledEmergency.value) {
-					if (emergencyTel.value.length > 0 && isSosPhoneValidCheck.value) {
+			if (userInfo.value?.userType === UserType.USER_DEVICE) {
+				if (userName.value.length > 0 && isEmailValidCheck.value && isPhoneValidCheck.value) {
+					if (isEnabledEmergency.value) {
+						if (emergencyTel.value.length > 0 && isSosPhoneValidCheck.value) {
+							savePrivate();
+						}
+					} else {
 						savePrivate();
 					}
-				} else {
-					savePrivate();
 				}
+			} else {
+				savePrivate();
 			}
 		};
 
@@ -153,34 +152,36 @@ export default defineComponent({
 				formData.append('userName', userName.value);
 				formData.append('email', email.value);
 				formData.append('tel', tel.value);
-				if (gender.value.length > 0) {
-					formData.append('gender', gender.value);
-				}
-				if (age.value.length > 0) {
-					formData.append('age', age.value);
-				}
-				if (weight.value.length > 0) {
-					formData.append('weight', weight.value);
-				}
-				if (height.value.length > 0) {
-					formData.append('height', height.value);
-				}
-				formData.append('isSosCallEnabled', isEnabledEmergency.value ? 'Y' : 'N');
-				formData.append('isCall119Enabled', isEnabled119.value ? 'Y' : 'N');
-				if (emergencyName.value.length > 0) {
-					formData.append('emergencyName', emergencyName.value);
-				}
-				if (emergencyTel.value.length > 0) {
-					formData.append('emergencyTel', emergencyTel.value);
-				}
-				if (emergencyCnt.value.length > 0) {
-					formData.append('emergencyCnt', emergencyCnt.value);
-				}
-				if (bpHigh.value.length > 0) {
-					formData.append('normalHighBp', bpHigh.value);
-				}
-				if (bpLow.value.length > 0) {
-					formData.append('normalLowBp', bpLow.value);
+				if (userInfo.value?.userType === UserType.USER_DEVICE) {
+					if (gender.value.length > 0) {
+						formData.append('gender', gender.value);
+					}
+					if (age.value.length > 0) {
+						formData.append('age', age.value);
+					}
+					if (weight.value.length > 0) {
+						formData.append('weight', weight.value);
+					}
+					if (height.value.length > 0) {
+						formData.append('height', height.value);
+					}
+					formData.append('isSosCallEnabled', isEnabledEmergency.value ? 'Y' : 'N');
+					formData.append('isCall119Enabled', isEnabled119.value ? 'Y' : 'N');
+					if (emergencyName.value.length > 0) {
+						formData.append('emergencyName', emergencyName.value);
+					}
+					if (emergencyTel.value.length > 0) {
+						formData.append('emergencyTel', emergencyTel.value);
+					}
+					if (emergencyCnt.value.length > 0) {
+						formData.append('emergencyCnt', emergencyCnt.value);
+					}
+					if (bpHigh.value.length > 0) {
+						formData.append('normalHighBp', bpHigh.value);
+					}
+					if (bpLow.value.length > 0) {
+						formData.append('normalLowBp', bpLow.value);
+					}
 				}
 				if (isChangeImage.value) formData.append('profileFile', imgFile.value as Blob);
 				apiClient.post('/api/1/users/me/update', formData).then(res => {
@@ -392,6 +393,7 @@ export default defineComponent({
 		});
 
 		return {
+			UserType,
 			store,
 			route,
 			router,
@@ -503,152 +505,156 @@ export default defineComponent({
 						올바른 양식이 아닙니다.
 					</p>
 				</div>
-				<div class="input-form mb-[20px]">
-					<div class="input-title pl-[20px] mb-[5px]">키</div>
-					<kpInput
-						class="kp-input private-input w-[calc(100%_-_50px)] pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
-						type="number"
-						:model-value="height"
-						@update:modelValue="height = $event" />
-					<span class="input-title ml-[10px]">cm</span>
-				</div>
-				<div class="input-form mb-[20px]">
-					<div class="input-title pl-[20px] mb-[5px]">몸무게</div>
-					<kpInput
-						class="kp-input private-input w-[calc(100%_-_50px)] pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
-						type="number"
-						:model-value="weight"
-						@update:modelValue="weight = $event" />
-					<span class="input-title ml-[10px]">kg</span>
-				</div>
-				<div class="input-form mb-[20px]">
-					<div class="input-title pl-[20px] mb-[5px]">나이</div>
-					<kpInput
-						class="kp-input private-input w-[calc(100%_-_50px)] pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
-						type="number"
-						:model-value="age"
-						@update:modelValue="age = $event" />
-					<span class="input-title ml-[10px]">세</span>
-				</div>
-				<div class="input-form mb-[20px]">
-					<div class="input-title pl-[20px] mb-[5px]">성별</div>
-					<kp-select-box
-						class="w-[50%]"
-						:select-value="gender"
-						:options="[
-							{ value: '남성', label: '남성' },
-							{ value: '여성', label: '여성' },
-						]"
-						@onChange="setGender" />
-				</div>
-			</div>
-			<div class="bg-white pt-[25px] pb-[32px] px-[20px] mb-[20px] rounded-[10px]">
-				<div class="flex justify-between items-center">
-					<div class="flex">
-						<span class="title">지정 긴급통화자 사용</span>
-					</div>
-					<kp-toggle :is-checked="isEnabledEmergency" @onToggleClick="setEnabledEmergency" />
-				</div>
-				<div class="flex justify-between items-center mt-[10px]">
-					<div class="flex">
-						<span class="title">119 연계 여부</span>
-					</div>
-					<kp-toggle :is-checked="isEnabled119" @onToggleClick="setEnabled119" />
-				</div>
-				<div class="mt-[20px] mb-[20px] input-form">
-					<div class="input-title pl-[20px] mb-[5px]">이름</div>
-					<kpInput
-						class="kp-input private-input w-full px-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
-						:read-only="!isEnabledEmergency"
-						:model-value="emergencyName"
-						:handle-key-up="userNameCheck"
-						:length="nameMaxLength"
-						@update:modelValue="emergencyName = $event" />
-				</div>
-				<div class="mt-[20px]">
-					<div class="input-form" :class="isSosPhoneValidCheck !== null && !isSosPhoneValidCheck ? '' : 'mb-[20px]'">
-						<div class="input-title pl-[20px] mb-[5px]">전화번호</div>
+				<template v-if="userInfo.userType === UserType.USER_DEVICE">
+					<div class="input-form mb-[20px]">
+						<div class="input-title pl-[20px] mb-[5px]">키</div>
 						<kpInput
-							class="kp-input private-input w-full pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
+							class="kp-input private-input w-[calc(100%_-_50px)] pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
+							type="number"
+							:model-value="height"
+							@update:modelValue="height = $event" />
+						<span class="input-title ml-[10px]">cm</span>
+					</div>
+					<div class="input-form mb-[20px]">
+						<div class="input-title pl-[20px] mb-[5px]">몸무게</div>
+						<kpInput
+							class="kp-input private-input w-[calc(100%_-_50px)] pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
+							type="number"
+							:model-value="weight"
+							@update:modelValue="weight = $event" />
+						<span class="input-title ml-[10px]">kg</span>
+					</div>
+					<div class="input-form mb-[20px]">
+						<div class="input-title pl-[20px] mb-[5px]">나이</div>
+						<kpInput
+							class="kp-input private-input w-[calc(100%_-_50px)] pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
+							type="number"
+							:model-value="age"
+							@update:modelValue="age = $event" />
+						<span class="input-title ml-[10px]">세</span>
+					</div>
+					<div class="input-form mb-[20px]">
+						<div class="input-title pl-[20px] mb-[5px]">성별</div>
+						<kp-select-box
+							class="w-[50%]"
+							:select-value="gender"
+							:options="[
+								{ value: '남성', label: '남성' },
+								{ value: '여성', label: '여성' },
+							]"
+							@onChange="setGender" />
+					</div>
+				</template>
+			</div>
+			<template v-if="userInfo.userType === UserType.USER_DEVICE">
+				<div class="bg-white pt-[25px] pb-[32px] px-[20px] mb-[20px] rounded-[10px]">
+					<div class="flex justify-between items-center">
+						<div class="flex">
+							<span class="title">지정 긴급통화자 사용</span>
+						</div>
+						<kp-toggle :is-checked="isEnabledEmergency" @onToggleClick="setEnabledEmergency" />
+					</div>
+					<div class="flex justify-between items-center mt-[10px]">
+						<div class="flex">
+							<span class="title">119 연계 여부</span>
+						</div>
+						<kp-toggle :is-checked="isEnabled119" @onToggleClick="setEnabled119" />
+					</div>
+					<div class="mt-[20px] mb-[20px] input-form">
+						<div class="input-title pl-[20px] mb-[5px]">이름</div>
+						<kpInput
+							class="kp-input private-input w-full px-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
 							:read-only="!isEnabledEmergency"
-							:model-value="emergencyTel"
-							:length="phoneMaxLength"
-							:handle-key-up="phoneNumberCheck"
-							@input="isSosPhoneValidCheck = null"
-							placeholder="010-0000-0000"
-							@update:modelValue="emergencyTel = $event" />
-						<p
-							v-if="isSosPhoneValidCheck !== null && !isSosPhoneValidCheck"
-							class="pl-[20px] pt-[10px] pb-[10px] font-normal text-[14px] text-[#FF3131]">
-							올바른 양식이 아닙니다.
-						</p>
+							:model-value="emergencyName"
+							:handle-key-up="userNameCheck"
+							:length="nameMaxLength"
+							@update:modelValue="emergencyName = $event" />
 					</div>
-				</div>
-				<div class="mb-[20px] input-form">
-					<div class="input-title pl-[20px] mb-[5px]">연결시도</div>
-					<kp-select-box
-						class="w-[50%]"
-						:select-value="emergencyCnt"
-						:options="[
-							{ value: '1', label: '1' },
-							{ value: '3', label: '3' },
-							{ value: '5', label: '5' },
-							{ value: '10', label: '10' },
-						]"
-						@onChange="setEmergencyCnt" />
-				</div>
-			</div>
-			<div class="bg-white pt-[25px] pb-[32px] px-[20px] mb-[40px] rounded-[10px]">
-				<div class="flex justify-between items-center">
-					<div class="flex">
-						<span class="title">평소 혈압정보(혈압 보정에 사용)</span>
+					<div class="mt-[20px]">
+						<div class="input-form" :class="isSosPhoneValidCheck !== null && !isSosPhoneValidCheck ? '' : 'mb-[20px]'">
+							<div class="input-title pl-[20px] mb-[5px]">전화번호</div>
+							<kpInput
+								class="kp-input private-input w-full pl-[20px] outline-0 pt-[16px] py-[15px] rounded-[25px]"
+								:read-only="!isEnabledEmergency"
+								:model-value="emergencyTel"
+								:length="phoneMaxLength"
+								:handle-key-up="phoneNumberCheck"
+								@input="isSosPhoneValidCheck = null"
+								placeholder="010-0000-0000"
+								@update:modelValue="emergencyTel = $event" />
+							<p
+								v-if="isSosPhoneValidCheck !== null && !isSosPhoneValidCheck"
+								class="pl-[20px] pt-[10px] pb-[10px] font-normal text-[14px] text-[#FF3131]">
+								올바른 양식이 아닙니다.
+							</p>
+						</div>
 					</div>
-				</div>
-				<div class="mt-[20px]">
-					<div class="mt-[20px] input-form">
-						<div class="input-title pl-[20px] mb-[5px]">수축기</div>
+					<div class="mb-[20px] input-form">
+						<div class="input-title pl-[20px] mb-[5px]">연결시도</div>
 						<kp-select-box
 							class="w-[50%]"
-							:select-value="bpHigh"
+							:select-value="emergencyCnt"
 							:options="[
-								{ value: '70', label: '70' },
-								{ value: '80', label: '80' },
-								{ value: '90', label: '90' },
-								{ value: '100', label: '100' },
-								{ value: '110', label: '110' },
-								{ value: '120', label: '120' },
-								{ value: '130', label: '130' },
-								{ value: '140', label: '140' },
-								{ value: '150', label: '150' },
-								{ value: '160', label: '160' },
-								{ value: '170', label: '170' },
-								{ value: '180', label: '180' },
-								{ value: '190', label: '190' },
-								{ value: '200', label: '200' },
+								{ value: '1', label: '1' },
+								{ value: '3', label: '3' },
+								{ value: '5', label: '5' },
+								{ value: '10', label: '10' },
 							]"
-							@onChange="setBpHigh" />
-						<span class="input-title ml-[10px]">mmHg</span>
-					</div>
-					<div class="mt-[10px] input-form">
-						<div class="input-title pl-[20px] mb-[5px]">이완기</div>
-						<kp-select-box
-							class="w-[50%]"
-							:select-value="bpLow"
-							:options="[
-								{ value: '60', label: '60' },
-								{ value: '70', label: '70' },
-								{ value: '80', label: '80' },
-								{ value: '90', label: '90' },
-								{ value: '100', label: '100' },
-								{ value: '110', label: '110' },
-								{ value: '120', label: '120' },
-								{ value: '130', label: '130' },
-							]"
-							@onChange="setBpLow" />
-						<span class="input-title ml-[10px]">mmHg</span>
+							@onChange="setEmergencyCnt" />
 					</div>
 				</div>
-			</div>
+				<div class="bg-white pt-[25px] pb-[32px] px-[20px] mb-[40px] rounded-[10px]">
+					<div class="flex justify-between items-center">
+						<div class="flex">
+							<span class="title">평소 혈압정보(혈압 보정에 사용)</span>
+						</div>
+					</div>
+					<div class="mt-[20px]">
+						<div class="mt-[20px] input-form">
+							<div class="input-title pl-[20px] mb-[5px]">수축기</div>
+							<kp-select-box
+								class="w-[50%]"
+								:select-value="bpHigh"
+								:options="[
+									{ value: '70', label: '70' },
+									{ value: '80', label: '80' },
+									{ value: '90', label: '90' },
+									{ value: '100', label: '100' },
+									{ value: '110', label: '110' },
+									{ value: '120', label: '120' },
+									{ value: '130', label: '130' },
+									{ value: '140', label: '140' },
+									{ value: '150', label: '150' },
+									{ value: '160', label: '160' },
+									{ value: '170', label: '170' },
+									{ value: '180', label: '180' },
+									{ value: '190', label: '190' },
+									{ value: '200', label: '200' },
+								]"
+								@onChange="setBpHigh" />
+							<span class="input-title ml-[10px]">mmHg</span>
+						</div>
+						<div class="mt-[10px] input-form">
+							<div class="input-title pl-[20px] mb-[5px]">이완기</div>
+							<kp-select-box
+								class="w-[50%]"
+								:select-value="bpLow"
+								:options="[
+									{ value: '60', label: '60' },
+									{ value: '70', label: '70' },
+									{ value: '80', label: '80' },
+									{ value: '90', label: '90' },
+									{ value: '100', label: '100' },
+									{ value: '110', label: '110' },
+									{ value: '120', label: '120' },
+									{ value: '130', label: '130' },
+								]"
+								@onChange="setBpLow" />
+							<span class="input-title ml-[10px]">mmHg</span>
+						</div>
+					</div>
+				</div>
+			</template>
 
 			<!--			<kpButton class="w-full opacity-100 text-[#F52E6B]"> 취소 </kpButton>-->
 			<!--			bg-[linear-gradient(180deg,_#FE6587_100%,_#F52D6A_100%)]-->
